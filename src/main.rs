@@ -142,15 +142,15 @@ fn main() {
         std::process::exit(1);
     }
 
-    let (guessable_path, solution_path) = (&argv[1], &argv[2]);
+    let (guessable_path, solution_path) = (Path::new(&argv[1]), Path::new(&argv[2]));
 
     if do_histogram {
-        histogram(8, guessable_path.as_ref(), solution_path.as_ref());
+        histogram(8, guessable_path, solution_path);
         return;
     }
 
-    let guessable_list = load_list_from_file(guessable_path.as_ref()).unwrap();
-    let solution_list = load_list_from_file(solution_path.as_ref()).unwrap();
+    let guessable_list = load_list_from_file(guessable_path).unwrap();
+    let solution_list = load_list_from_file(solution_path).unwrap();
 
     let mut state = Solver::new(&guessable_list, &solution_list, true);
 
