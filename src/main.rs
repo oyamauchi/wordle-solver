@@ -1,25 +1,28 @@
-use std::env::args;
 use std::fs::File;
 use std::io::{stdin, stdout, BufRead, BufReader, Write};
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
 
+use argparse::{ArgumentParser, Parse, Store, StoreOption, StoreTrue};
+
 mod score;
 mod solver;
 
-use score::{compute_score, parse_score_string, DetailScore, LetterScore};
+use score::{compute_score, parse_score_string, render_score, DetailScore, LetterScore};
 use solver::Solver;
 
 /// Read a 5-letter a/c/p string from stdin via interactive prompts.
-fn read_score_interactively() -> DetailScore {
+fn read_score_interactively(quiet: bool) -> DetailScore {
     let input = stdin();
     let mut output = stdout();
     let mut buf = String::new();
 
     loop {
-        output.write(b"Score: ").unwrap();
-        output.flush().unwrap();
+        if !quiet {
+            output.write(b"Score: ").unwrap();
+            output.flush().unwrap();
+        }
 
         buf.clear();
         input.read_line(&mut buf).unwrap();
@@ -124,44 +127,101 @@ fn histogram(thread_count: usize, guessable_path: &Path, solution_path: &Path) {
 
 fn main() {
     let mut do_histogram = false;
-    let mut argv = Vec::new();
+    let mut quiet = false;
+    let mut thread_count = 8;
+    let mut predetermined_solution: Option<String> = None;
 
-    for arg in args() {
-        if arg == "--solve-all" {
-            do_histogram = true;
-        } else {
-            argv.push(arg);
-        }
-    }
+    let mut guessable_path = "".to_string();
+    let mut solutions_path = "".to_string();
 
-    if argv.len() < 3 {
-        println!(
-            "Usage: {} [--solve-all] <guessable-words-file> <solutions-file>",
-            argv[0]
+    {
+        let mut parser = ArgumentParser::new();
+        parser.set_description("Solve wordle");
+        parser.refer(&mut quiet).add_option(
+            &["-q", "--quiet"],
+            StoreTrue,
+            concat!(
+                "Only print guesses (and scores if --self-score is passed); ",
+                "do not print prompts or info."
+            ),
         );
-        std::process::exit(1);
+        parser.refer(&mut predetermined_solution).add_option(
+            &["--self-score"],
+            StoreOption,
+            "Use this as the answer; output guesses and scores",
+        );
+        parser.refer(&mut do_histogram).add_option(
+            &["--solve-all"],
+            StoreTrue,
+            concat!(
+                "Run solver on every possible solution; report number of guesses required for ",
+                "each. Ignores --self-score and --quiet."
+            ),
+        );
+        parser.refer(&mut thread_count).add_option(
+            &["--thread-count"],
+            Parse,
+            "Thread count for --solve-all runs",
+        );
+        parser.refer(&mut guessable_path).required().add_argument(
+            "guessable-path",
+            Store,
+            "The path to the file of guessable strings",
+        );
+        parser.refer(&mut solutions_path).required().add_argument(
+            "solutions-path",
+            Store,
+            "The path to the file of possible solutions",
+        );
+        parser.parse_args_or_exit();
     }
-
-    let (guessable_path, solution_path) = (Path::new(&argv[1]), Path::new(&argv[2]));
 
     if do_histogram {
-        histogram(8, guessable_path, solution_path);
+        histogram(
+            thread_count,
+            guessable_path.as_ref(),
+            solutions_path.as_ref(),
+        );
         return;
     }
 
-    let guessable_list = load_list_from_file(guessable_path).unwrap();
-    let solution_list = load_list_from_file(solution_path).unwrap();
+    let guessable_list = load_list_from_file(guessable_path.as_ref()).unwrap();
+    let solution_list = load_list_from_file(solutions_path.as_ref()).unwrap();
 
-    let mut state = Solver::new(&guessable_list, &solution_list, true);
+    if let Some(ref solution) = predetermined_solution {
+        if !solution_list.contains(solution) {
+            println!("'{}' is not in the solution list!", solution);
+            std::process::exit(1);
+        }
+    }
+
+    let mut state = Solver::new(&guessable_list, &solution_list, !quiet);
 
     loop {
         let guess = state.next_guess();
-        println!("Guess: {}", guess);
+        if quiet {
+            println!("{}", guess);
+        } else {
+            println!("Guess: {}", guess);
+        }
 
-        let score = read_score_interactively();
+        let score = match predetermined_solution {
+            Some(ref solution) => {
+                let s = compute_score(guess, solution);
+                if quiet {
+                    println!("{}", render_score(&s));
+                } else {
+                    println!("Score: {}", render_score(&s));
+                }
+                s
+            }
+            None => read_score_interactively(quiet),
+        };
 
         if score.iter().all(|letter| *letter == LetterScore::CORRECT) {
-            println!("Win!");
+            if !quiet {
+                println!("Win!");
+            }
             break;
         }
 

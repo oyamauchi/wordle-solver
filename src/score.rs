@@ -95,6 +95,14 @@ pub fn parse_score_string(score_str: &str) -> Option<DetailScore> {
     Some(result)
 }
 
+pub fn render_score(score: &DetailScore) -> String {
+    String::from_iter(score.iter().map(|letter| match letter {
+        LetterScore::ABSENT => 'a',
+        LetterScore::CORRECT => 'c',
+        LetterScore::PRESENT => 'p',
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
