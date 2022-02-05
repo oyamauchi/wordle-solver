@@ -130,6 +130,7 @@ fn main() {
     let mut quiet = false;
     let mut thread_count = 8;
     let mut predetermined_solution: Option<String> = None;
+    let mut first_guess: Option<String> = None;
 
     let mut guessable_path = "".to_string();
     let mut solutions_path = "".to_string();
@@ -144,6 +145,11 @@ fn main() {
                 "Only print guesses (and scores if --self-score is passed); ",
                 "do not print prompts or info."
             ),
+        );
+        parser.refer(&mut first_guess).add_option(
+            &["--first-guess"],
+            StoreOption,
+            "Use this as the first guess",
         );
         parser.refer(&mut predetermined_solution).add_option(
             &["--self-score"],
@@ -198,7 +204,10 @@ fn main() {
     let mut state = Solver::new(&guessable_list, &solution_list, !quiet);
 
     loop {
-        let guess = state.next_guess();
+        let guess = first_guess
+            .as_ref()
+            .map_or_else(|| state.next_guess(), String::as_str);
+
         if quiet {
             println!("{}", guess);
         } else {
@@ -226,5 +235,6 @@ fn main() {
         }
 
         state.respond_to_score(guess, &score);
+        first_guess = None;
     }
 }
