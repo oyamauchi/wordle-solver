@@ -128,7 +128,11 @@ impl<'a> Solver<'a> {
         }
 
         if self.verbose {
-            println!("{} possibilities left", self.possibilities.len());
+            if self.possibilities.len() <= 10 {
+                println!("Possibilities left: {}", self.possibilities.join(", "));
+            } else {
+                println!("{} possibilities left", self.possibilities.len());
+            }
         }
     }
 }
