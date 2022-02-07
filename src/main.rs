@@ -55,13 +55,14 @@ fn thread_func(
     sender: Sender<[usize; 10]>,
     guessable: Arc<Vec<String>>,
     solutions: Arc<Vec<String>>,
+    hard_mode: bool,
     start_index: usize,
     end_index: usize,
 ) {
     let mut guess_counts = [0; 10];
 
     for answer in solutions[start_index..end_index].iter() {
-        let mut state = Solver::new(guessable.as_ref(), solutions.as_ref(), false);
+        let mut state = Solver::new(guessable.as_ref(), solutions.as_ref(), hard_mode, false);
         let mut guess_count = 0;
 
         loop {
@@ -84,7 +85,7 @@ fn thread_func(
 
 /// Run the solver with each allowable solution, collecting a count of how many guesses were
 /// required to solve each one. Splits the work out into threads for speed.
-fn histogram(thread_count: usize, guessable_path: &Path, solution_path: &Path) {
+fn histogram(thread_count: usize, guessable_path: &Path, solution_path: &Path, hard_mode: bool) {
     let guessable_list = Arc::new(load_list_from_file(guessable_path).unwrap());
     let solution_list = Arc::new(load_list_from_file(solution_path).unwrap());
 
@@ -106,6 +107,7 @@ fn histogram(thread_count: usize, guessable_path: &Path, solution_path: &Path) {
                 this_sender,
                 this_guessable,
                 this_solutions,
+                hard_mode,
                 start_index,
                 end_index,
             )
@@ -131,6 +133,7 @@ fn main() {
     let mut thread_count = 8;
     let mut predetermined_solution: Option<String> = None;
     let mut first_guess: Option<String> = None;
+    let mut hard_mode = false;
 
     let mut guessable_path = "".to_string();
     let mut solutions_path = "".to_string();
@@ -150,6 +153,11 @@ fn main() {
             &["--first-guess"],
             StoreOption,
             "Use this as the first guess",
+        );
+        parser.refer(&mut hard_mode).add_option(
+            &["--hard-mode"],
+            StoreTrue,
+            "Only guess words that are possible solutions",
         );
         parser.refer(&mut predetermined_solution).add_option(
             &["--self-score"],
@@ -187,6 +195,7 @@ fn main() {
             thread_count,
             guessable_path.as_ref(),
             solutions_path.as_ref(),
+            hard_mode,
         );
         return;
     }
@@ -201,7 +210,7 @@ fn main() {
         }
     }
 
-    let mut state = Solver::new(&guessable_list, &solution_list, !quiet);
+    let mut state = Solver::new(&guessable_list, &solution_list, hard_mode, !quiet);
 
     loop {
         let guess = first_guess

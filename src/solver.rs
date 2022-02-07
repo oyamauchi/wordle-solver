@@ -10,16 +10,29 @@ pub struct Solver<'a> {
     /// All words that can be solutions.
     solution_list: &'a [String],
 
+    /// Guesses made so far, and the scores they got. Only used in hard mode.
+    history: Vec<(String, DetailScore)>,
+
+    /// Only allowed to guess words that match scores seen so far.
+    hard_mode: bool,
+
     /// Whether to print log messages.
     verbose: bool,
 }
 
 impl<'a> Solver<'a> {
-    pub fn new(guessable_list: &'a [String], solution_list: &'a [String], verbose: bool) -> Self {
+    pub fn new(
+        guessable_list: &'a [String],
+        solution_list: &'a [String],
+        hard_mode: bool,
+        verbose: bool,
+    ) -> Self {
         Solver {
             possibilities: Vec::from_iter(solution_list.iter().map(|s| s.as_str())),
             guessable_list,
             solution_list,
+            history: Vec::new(),
+            hard_mode,
             verbose,
         }
     }
@@ -37,7 +50,17 @@ impl<'a> Solver<'a> {
         // each possible score. We take the minimum of all those, and find the guess that maximizes
         // that minimum. In other words, find the guess that eliminates the most possible solutions
         // even in the worst-case scenario.
-        for guess in self.solution_list.iter().chain(self.guessable_list.iter()) {
+        'next_guess: for guess in self.solution_list.iter().chain(self.guessable_list.iter()) {
+            // In hard mode, you're only allowed to guess words that match all the scores you've
+            // gotten so far.
+            if self.hard_mode {
+                for (prev_guess, score) in self.history.iter() {
+                    if compute_score(prev_guess, guess) != *score {
+                        continue 'next_guess;
+                    }
+                }
+            }
+
             let mut min_possibilities_eliminated = usize::MAX;
 
             for possible_score in all_possible_scores().iter() {
@@ -98,6 +121,10 @@ impl<'a> Solver<'a> {
     /// Whittle down the possibilities set given the actual score for a guess. Note that this
     /// doesn't assume the guess is one that `next_guess` actually returned; it can be anything.
     pub fn respond_to_score(&mut self, guess: &str, score: &DetailScore) {
+        if self.hard_mode {
+            self.history.push((String::from(guess), score.clone()));
+        }
+
         let mut read_index = 0;
         let mut write_index = 0;
 
