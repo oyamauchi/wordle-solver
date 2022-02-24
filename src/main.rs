@@ -1,55 +1,17 @@
-use std::fs::File;
-use std::io::{stdin, stdout, BufRead, BufReader, Write};
+use std::io::{stdin, stdout};
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
 
 use argparse::{ArgumentParser, Parse, Store, StoreOption, StoreTrue};
 
+mod loader;
 mod score;
 mod solver;
 
-use score::{compute_score, parse_score_string, render_score, DetailScore, LetterScore};
+use loader::load_list_from_file;
+use score::{compute_score, read_score_interactively, render_score, LetterScore};
 use solver::Solver;
-
-/// Read a 5-letter a/c/p string from stdin via interactive prompts.
-fn read_score_interactively(quiet: bool) -> DetailScore {
-    let input = stdin();
-    let mut output = stdout();
-    let mut buf = String::new();
-
-    loop {
-        if !quiet {
-            output.write(b"Score: ").unwrap();
-            output.flush().unwrap();
-        }
-
-        buf.clear();
-        input.read_line(&mut buf).unwrap();
-
-        match parse_score_string(buf.trim_end()) {
-            Some(score) => return score,
-            None => println!(
-        "Score must be 5 characters, all either 'a' (absent), 'c' (correct), or 'p' (present)."
-            ),
-        }
-    }
-}
-
-/// Read a word list from a file (one word per line).
-fn load_list_from_file(path: &Path) -> Result<Vec<String>, std::io::Error> {
-    let reader = File::open(path)?;
-    let mut bufreader = BufReader::new(reader);
-
-    let mut result = Vec::new();
-    let mut buffer = String::new();
-    while bufreader.read_line(&mut buffer)? > 0 {
-        result.push(String::from(buffer.trim_end()));
-        buffer.clear();
-    }
-
-    Ok(result)
-}
 
 fn thread_func(
     sender: Sender<[usize; 10]>,
@@ -128,6 +90,10 @@ fn histogram(thread_count: usize, guessable_path: &Path, solution_path: &Path, h
 }
 
 fn main() {
+    let _stdin = stdin();
+    let mut input = _stdin.lock();
+    let mut output = stdout();
+
     let mut do_histogram = false;
     let mut quiet = false;
     let mut thread_count = 8;
@@ -233,7 +199,7 @@ fn main() {
                 }
                 s
             }
-            None => read_score_interactively(quiet),
+            None => read_score_interactively(&mut input, &mut output, quiet),
         };
 
         if score.iter().all(|letter| *letter == LetterScore::CORRECT) {

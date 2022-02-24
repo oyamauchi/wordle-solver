@@ -1,3 +1,4 @@
+use std::io::{BufRead, Write};
 use std::mem::MaybeUninit;
 use std::sync::Once;
 
@@ -76,7 +77,7 @@ pub fn compute_score(guess: &str, solution: &str) -> DetailScore {
 }
 
 /// Turn a 5-letter string of "a", "c", and "p" into a DetailScore.
-pub fn parse_score_string(score_str: &str) -> Option<DetailScore> {
+fn parse_score_string(score_str: &str) -> Option<DetailScore> {
     if score_str.len() != 5 {
         return None;
     }
@@ -101,6 +102,32 @@ pub fn render_score(score: &DetailScore) -> String {
         LetterScore::CORRECT => 'c',
         LetterScore::PRESENT => 'p',
     }))
+}
+
+/// Read a 5-letter a/c/p string from stdin via interactive prompts.
+pub fn read_score_interactively(
+    input: &mut dyn BufRead,
+    output: &mut dyn Write,
+    quiet: bool,
+) -> DetailScore {
+    let mut buf = String::new();
+
+    loop {
+        if !quiet {
+            output.write(b"Score: ").unwrap();
+            output.flush().unwrap();
+        }
+
+        buf.clear();
+        input.read_line(&mut buf).unwrap();
+
+        match parse_score_string(buf.trim_end()) {
+            Some(score) => return score,
+            None => println!(
+        "Score must be 5 characters, all either 'a' (absent), 'c' (correct), or 'p' (present)."
+            ),
+        }
+    }
 }
 
 #[cfg(test)]
