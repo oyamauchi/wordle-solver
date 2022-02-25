@@ -10,7 +10,7 @@ mod score;
 mod solver;
 
 use loader::load_list_from_file;
-use score::{compute_score, read_score_interactively, render_score, LetterScore};
+use score::{compute_score, read_score_interactively};
 use solver::Solver;
 
 fn thread_func(
@@ -32,7 +32,7 @@ fn thread_func(
             let score = compute_score(guess, answer);
             guess_count += 1;
 
-            if score.iter().all(|letter| *letter == LetterScore::CORRECT) {
+            if score.is_win() {
                 guess_counts[guess_count] += 1;
                 println!("{} {}", guess_count, answer);
                 break;
@@ -193,16 +193,16 @@ fn main() {
             Some(ref solution) => {
                 let s = compute_score(guess, solution);
                 if quiet {
-                    println!("{}", render_score(&s));
+                    println!("{}", s);
                 } else {
-                    println!("Score: {}", render_score(&s));
+                    println!("Score: {}", s);
                 }
                 s
             }
             None => read_score_interactively(&mut input, &mut output, quiet),
         };
 
-        if score.iter().all(|letter| *letter == LetterScore::CORRECT) {
+        if score.is_win() {
             if !quiet {
                 println!("Win!");
             }

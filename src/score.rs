@@ -1,4 +1,5 @@
-use std::io::{BufRead, Write};
+use std::fmt::{Display, Write};
+use std::io::BufRead;
 use std::mem::MaybeUninit;
 use std::sync::Once;
 
@@ -9,7 +10,31 @@ pub enum LetterScore {
     ABSENT,
 }
 
-pub type DetailScore = [LetterScore; 5];
+#[derive(Clone, Debug, PartialEq)]
+pub struct DetailScore {
+    inner: [LetterScore; 5],
+}
+
+impl DetailScore {
+    pub fn is_win(&self) -> bool {
+        self.inner
+            .iter()
+            .all(|letter| *letter == LetterScore::CORRECT)
+    }
+}
+
+impl Display for DetailScore {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for letter in self.inner.iter() {
+            f.write_char(match letter {
+                LetterScore::ABSENT => 'a',
+                LetterScore::CORRECT => 'c',
+                LetterScore::PRESENT => 'p',
+            })?;
+        }
+        Ok(())
+    }
+}
 
 /// All possible scores for a five-letter guess.
 static mut POSSIBLE_SCORES: MaybeUninit<Vec<DetailScore>> = MaybeUninit::uninit();
@@ -33,7 +58,9 @@ pub fn all_possible_scores() -> &'static Vec<DetailScore> {
                 for c in 0..3 {
                     for d in 0..3 {
                         for e in 0..3 {
-                            vec.push([letters[a], letters[b], letters[c], letters[d], letters[e]]);
+                            let inner =
+                                [letters[a], letters[b], letters[c], letters[d], letters[e]];
+                            vec.push(DetailScore { inner });
                         }
                     }
                 }
@@ -73,7 +100,7 @@ pub fn compute_score(guess: &str, solution: &str) -> DetailScore {
         }
     }
 
-    result
+    DetailScore { inner: result }
 }
 
 /// Turn a 5-letter string of "a", "c", and "p" into a DetailScore.
@@ -93,21 +120,13 @@ fn parse_score_string(score_str: &str) -> Option<DetailScore> {
         }
     }
 
-    Some(result)
-}
-
-pub fn render_score(score: &DetailScore) -> String {
-    String::from_iter(score.iter().map(|letter| match letter {
-        LetterScore::ABSENT => 'a',
-        LetterScore::CORRECT => 'c',
-        LetterScore::PRESENT => 'p',
-    }))
+    Some(DetailScore { inner: result })
 }
 
 /// Read a 5-letter a/c/p string from stdin via interactive prompts.
 pub fn read_score_interactively(
     input: &mut dyn BufRead,
-    output: &mut dyn Write,
+    output: &mut dyn std::io::Write,
     quiet: bool,
 ) -> DetailScore {
     let mut buf = String::new();
