@@ -125,29 +125,8 @@ impl<'a> Solver<'a> {
             self.history.push((String::from(guess), score.clone()));
         }
 
-        let mut read_index = 0;
-        let mut write_index = 0;
-
-        // Collect the still-possible solutions at the beginning, then chop off the end.
-        loop {
-            while read_index < self.possibilities.len() {
-                if compute_score(guess, self.possibilities[read_index]) == *score {
-                    break;
-                }
-                read_index += 1;
-            }
-
-            if read_index < self.possibilities.len() {
-                self.possibilities[write_index] = self.possibilities[read_index];
-                read_index += 1;
-                write_index += 1;
-            } else {
-                break;
-            }
-        }
-
-        self.possibilities.truncate(write_index);
-        self.possibilities.shrink_to_fit();
+        self.possibilities
+            .retain(|possibility| compute_score(guess, possibility) == *score);
 
         if self.possibilities.len() == 0 {
             // This should not happen absent human error in playing the game.
