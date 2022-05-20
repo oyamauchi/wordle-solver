@@ -1,4 +1,4 @@
-use std::io::{stdin, stdout};
+use std::io::{stdin, stdout, BufRead};
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
@@ -89,6 +89,30 @@ fn histogram(thread_count: usize, guessable_path: &Path, solution_path: &Path, h
     println!("{:?}", totals);
 }
 
+fn read_guess_interactively(
+    input: &mut dyn BufRead,
+    output: &mut dyn std::io::Write,
+    quiet: bool,
+) -> String {
+    let mut buf = String::new();
+
+    loop {
+        if !quiet {
+            output.write(b"Guess: ").unwrap();
+            output.flush().unwrap();
+        }
+
+        buf.clear();
+        input.read_line(&mut buf).unwrap();
+        buf.truncate(buf.len() - 1);
+
+        if buf.len() == 5 && buf.as_bytes().iter().all(|b| *b >= b'a' && *b <= b'z') {
+            return buf;
+        }
+        println!("Guess must be 5 lowercase letters");
+    }
+}
+
 fn main() {
     let _stdin = stdin();
     let mut input = _stdin.lock();
@@ -99,6 +123,7 @@ fn main() {
     let mut thread_count = 8;
     let mut predetermined_solution: Option<String> = None;
     let mut first_guess: Option<String> = None;
+    let mut enter_guesses = false;
     let mut hard_mode = false;
 
     let mut guessable_path = "".to_string();
@@ -119,6 +144,11 @@ fn main() {
             &["--first-guess"],
             StoreOption,
             "Use this as the first guess",
+        );
+        parser.refer(&mut enter_guesses).add_option(
+            &["--enter-guesses"],
+            StoreTrue,
+            "Manually enter guesses instead of automatically using generated ones",
         );
         parser.refer(&mut hard_mode).add_option(
             &["--hard-mode"],
@@ -179,19 +209,25 @@ fn main() {
     let mut state = Solver::new(&guessable_list, &solution_list, hard_mode, !quiet);
 
     loop {
-        let guess = first_guess
-            .as_ref()
-            .map_or_else(|| state.next_guess(), String::as_str);
+        let guess = first_guess.unwrap_or_else(|| {
+            if enter_guesses {
+                read_guess_interactively(&mut input, &mut output, quiet)
+            } else {
+                String::from(state.next_guess())
+            }
+        });
 
-        if quiet {
-            println!("{}", guess);
-        } else {
-            println!("Guess: {}", guess);
+        if !enter_guesses {
+            if quiet {
+                println!("{}", guess);
+            } else {
+                println!("Guess: {}", guess);
+            }
         }
 
         let score = match predetermined_solution {
             Some(ref solution) => {
-                let s = compute_score(guess, solution);
+                let s = compute_score(&guess, solution);
                 if quiet {
                     println!("{}", s);
                 } else {
@@ -209,7 +245,7 @@ fn main() {
             break;
         }
 
-        state.respond_to_score(guess, &score);
+        state.respond_to_score(&guess, &score);
         first_guess = None;
     }
 }
