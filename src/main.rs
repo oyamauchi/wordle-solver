@@ -86,8 +86,8 @@ fn main() {
             &["--solve-all"],
             StoreTrue,
             concat!(
-                "Run solver on every possible solution; report number of guesses required for ",
-                "each. Ignores --self-score and --quiet."
+                "Run both solver strategies on every possible solution; report number of guesses ",
+                "required for each. Ignores --self-score, --strategy, and --quiet."
             ),
         );
         parser.refer(&mut strategy).add_option(
@@ -119,7 +119,6 @@ fn main() {
             guessable_path.as_ref(),
             solutions_path.as_ref(),
             hard_mode,
-            strategy,
         );
         return;
     }

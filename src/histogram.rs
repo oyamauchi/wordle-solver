@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
@@ -6,43 +7,76 @@ use crate::loader::load_list_from_file;
 use crate::score::compute_score;
 use crate::solver::{Solver, Strategy};
 
+struct ThreadResult {
+    groupsize_counts: [usize; 10],
+    groupcount_counts: [usize; 10],
+    count_size_tie: [usize; 3],
+}
+
+fn run_solver(mut solver: Solver, answer: &str) -> u8 {
+    let mut guess_count = 0;
+
+    loop {
+        let guess = solver.next_guess();
+        let score = compute_score(guess, answer);
+        guess_count += 1;
+
+        if score.is_win() {
+            return guess_count;
+        }
+
+        solver.respond_to_score(guess, &score);
+    }
+}
+
 fn thread_func(
-    sender: Sender<[usize; 10]>,
+    sender: Sender<ThreadResult>,
     guessable: Arc<Vec<String>>,
     solutions: Arc<Vec<String>>,
     hard_mode: bool,
-    strategy: Strategy,
     start_index: usize,
     end_index: usize,
 ) {
-    let mut guess_counts = [0; 10];
+    let mut groupsize_counts = [0; 10];
+    let mut groupcount_counts = [0; 10];
+    let mut count_size_tie = [0; 3];
 
     for answer in solutions[start_index..end_index].iter() {
-        let mut state = Solver::new(
+        let groupsize = Solver::new(
             guessable.as_ref(),
             solutions.as_ref(),
             hard_mode,
             false,
-            strategy,
+            Strategy::GROUPSIZE,
         );
-        let mut guess_count = 0;
+        let size_result = run_solver(groupsize, answer);
+        groupsize_counts[size_result as usize] += 1;
 
-        loop {
-            let guess = state.next_guess();
-            let score = compute_score(guess, answer);
-            guess_count += 1;
+        let groupcount = Solver::new(
+            guessable.as_ref(),
+            solutions.as_ref(),
+            hard_mode,
+            false,
+            Strategy::GROUPCOUNT,
+        );
+        let count_result = run_solver(groupcount, answer);
+        groupcount_counts[count_result as usize] += 1;
 
-            if score.is_win() {
-                guess_counts[guess_count] += 1;
-                println!("{} {}", guess_count, answer);
-                break;
-            }
-
-            state.respond_to_score(guess, &score);
-        }
+        println!("{} {} {}", count_result, size_result, answer);
+        match size_result.cmp(&count_result) {
+            Ordering::Less => count_size_tie[1] += 1,
+            Ordering::Equal => count_size_tie[2] += 1,
+            Ordering::Greater => count_size_tie[0] += 1,
+        };
     }
 
-    sender.send(guess_counts).unwrap();
+    sender
+        .send(ThreadResult {
+            groupsize_counts,
+            groupcount_counts,
+            count_size_tie,
+        })
+        .unwrap();
 }
 
 /// Run the solver with each allowable solution, collecting a count of how many guesses were
@@ -52,7 +86,6 @@ pub fn histogram(
     guessable_path: &Path,
     solution_path: &Path,
     hard_mode: bool,
-    strategy: Strategy,
 ) {
     let guessable_list = Arc::new(load_list_from_file(guessable_path).unwrap());
     let solution_list = Arc::new(load_list_from_file(solution_path).unwrap());
@@ -76,7 +109,6 @@ pub fn histogram(
                 this_guessable,
                 this_solutions,
                 hard_mode,
-                strategy,
                 start_index,
                 end_index,
             )
@@ -84,14 +116,25 @@ pub fn histogram(
         start_index += count_per_thread;
     }
 
-    let mut totals = [0; 10];
+    let mut groupcount_totals = [0; 10];
+    let mut groupsize_totals = [0; 10];
+    let mut count_size_tie = [0; 3];
 
     for _ in 0..thread_count {
-        let one_result = receiver.recv().unwrap();
-        for i in 0..one_result.len() {
-            totals[i] += one_result[i];
+        let result = receiver.recv().unwrap();
+        for i in 0..10 {
+            groupcount_totals[i] += result.groupcount_counts[i];
+            groupsize_totals[i] += result.groupsize_counts[i];
+        }
+        for i in 0..3 {
+            count_size_tie[i] += result.count_size_tie[i];
         }
     }
 
-    println!("{:?}", totals);
+    println!("GROUPCOUNT: {:?}", groupcount_totals);
+    println!("GROUPSIZE:  {:?}", groupsize_totals);
+    println!(
+        "RECORD (count wins - size wins - tie): {:?}",
+        count_size_tie
+    );
 }
