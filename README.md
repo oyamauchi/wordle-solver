@@ -1,8 +1,15 @@
 # wordle-solver
 
-A solver for [Wordle](https://www.powerlanguage.co.uk/wordle/). This uses
-Knuth's min/max algorithm to do statistically optimal solving, assuming every
-possible solution word has an equal chance of being the actual solution.
+A solver for [Wordle](https://www.nytimes.com/wordle/).
+
+There are two solving strategies implemented:
+
+- One based on Knuth's Mastermind algorithm, which optimizes the worst case,
+  solving every possible Wordle in 5 guesses or less (non-hard mode). This is
+  the default strategy, or it can be selected with `--strategy groupsize`.
+
+- One based on the NYTimes bot's strategy, which optimizes the average case. You
+  can select it with the command-line flag `--strategy groupcount`.
 
 ## Running
 
@@ -13,11 +20,9 @@ $ ./wordle-solver guessable.txt solutions.txt
 ```
 
 This will repeatedly tell you a word to guess, then ask you to enter the score.
-You can either enter the guessed word into Wordle and report the score back, or
-have a word in your head and work out the score yourself.
-
-Enter the score as a 5-letter string of the letters "a" (absent; gray square),
-"c" (correct; green square), and "p" (present; yellow/blue square).
+You can enter the guessed word into Wordle and report the score back. Enter the
+score as a 5-letter string of the letters "a" (absent; gray square), "c"
+(correct; green square), and "p" (present; yellow/blue square).
 
 Example with the solution `cargo`. The characters after each `Score:` prompt are
 typed in interactively.
@@ -39,9 +44,26 @@ Score: ccccc
 Win!
 ```
 
-Passing the `--solve-all` flag will instead run the solver with every possible
-solution word, printing out how many guesses each one took to solve, and
-printing a summary at the end (the data in the table below).
+The solver supports hard mode; simply pass `--hard-mode`.
+
+You can have the solver stop printing prompts and remaining possibilities with
+the `--quiet` flag; this makes it easier to run the solver from a script. You
+just send guesses and/or scores over stdin, and get back guesses and/or scores
+over stdout.
+
+Other ways to use the solver:
+
+- If you have a solution word in mind, you can pass it to the solver using the
+  `--self-score <word>` flag to have the solver automatically compute the score
+  for each guess.
+
+- If you'd rather use your own guesses but still get the solver's suggestions,
+  use the `--enter-guesses` flag.
+
+- Passing the `--solve-all` flag will instead run the solver with both
+  strategies and every possible solution word, printing out how many guesses
+  each one took to solve, and printing a summary at the end (the data in the
+  table below).
 
 ## Word lists
 
@@ -66,37 +88,60 @@ Guessable list =
 Wordle has two sets of words: 2,315 words that can be solutions, and 10,657 that
 can't be solutions but that you're allowed to guess.
 
-The starting words that eliminate the most possibilities are `arise` and
-`raise`.
+Head-to-head results for the two strategies (i.e. have each one solve every
+possible word, and compare which one took fewer guesses) clearly show that
+`groupcount` does better on average.
 
-In normal mode, this program can solve all words in 5 guesses or fewer. In hard
-mode, there are 14 words that it cannot solve within 6 guesses:
+|        | `groupsize` wins | `groupcount` wins | Tie  |
+| ------ | ---------------- | ----------------- | ---- |
+| Normal | 439              | 712               | 1164 |
+| Hard   | 490              | 755               | 1070 |
 
-- baste
-- batch
-- brown
-- cower
-- graze
-- hound
-- mover
-- shale
-- snore
-- water
-- willy
-- match (8 guesses)
-- mower (8 guesses)
-- shave (8 guesses)
+`groupcount` always starts with `trace`, although for some reason the NYTimes
+bot, which apparently uses the same strategy, prefers the starting word `crane`.
+`groupsize` could start with either `arise` or `raise`.
 
-| N   | Solvable in N | % solvable in <= N | Solvable in N (hard) | % solvable in <= N (hard) |
-| --- | ------------- | ------------------ | -------------------- | ------------------------- |
-| 1   | 1             | 0.00043%           | 1                    | 0.00043%                  |
-| 2   | 53            | 2.33%              | 93                   | 4.06%                     |
-| 3   | 997           | 45.40%             | 910                  | 43.37%                    |
-| 4   | 1168          | 95.85%             | 1029                 | 87.82%                    |
-| 5   | 96            | 100%               | 227                  | 97.62%                    |
-| 6   |               |                    | 41                   | 99.40%                    |
-| _7_ |               |                    | _11_                 | _99.87%_                  |
-| _8_ |               |                    | _3_                  | _100%_                    |
+In normal mode, `groupsize` can solve all words in 5 guesses or fewer, and
+`groupcount` can solve all but one word (`boxer`) in 5 guesses or fewer. In hard
+mode, neither strategy can solve all words within 6 guesses:
+
+| N   | `groupsize` normal | `groupcount` normal | `groupsize` hard | `groupcount` hard |
+| --- | ------------------ | ------------------- | ---------------- | ----------------- |
+| 1   | 1                  | 1                   | 1                | 1                 |
+| 2   | 53                 | 75                  | 93               | 124               |
+| 3   | 997                | 1237                | 910              | 1084              |
+| 4   | 1168               | 926                 | 1029             | 910               |
+| 5   | 96                 | 75                  | 227              | 159               |
+| 6   |                    | 1                   | 41               | 29                |
+| _7_ |                    |                     | _11_             | _7_               |
+| _8_ |                    |                     | _3_              | _1_               |
+
+These are the words that can't be solved within 6 guesses in hard mode:
+
+- `groupsize`
+  - baste
+  - batch
+  - brown
+  - cower
+  - graze
+  - hound
+  - mover
+  - shale
+  - snore
+  - water
+  - willy
+  - match (8 guesses)
+  - mower (8 guesses)
+  - shave (8 guesses)
+- `groupcount`
+  - batch
+  - boxer
+  - golly
+  - goner
+  - joker
+  - vaunt
+  - willy
+  - match (8 guesses)
 
 The long tail of hard-to-solve words in hard mode is composed of words that
 differ from many other words by only one letter. E.g. in solving `shave`, the
