@@ -11,20 +11,27 @@ mod solver;
 
 use loader::load_list_from_file;
 use score::{compute_score, read_score_interactively};
-use solver::Solver;
+use solver::{Solver, Strategy};
 
 fn thread_func(
     sender: Sender<[usize; 10]>,
     guessable: Arc<Vec<String>>,
     solutions: Arc<Vec<String>>,
     hard_mode: bool,
+    strategy: Strategy,
     start_index: usize,
     end_index: usize,
 ) {
     let mut guess_counts = [0; 10];
 
     for answer in solutions[start_index..end_index].iter() {
-        let mut state = Solver::new(guessable.as_ref(), solutions.as_ref(), hard_mode, false);
+        let mut state = Solver::new(
+            guessable.as_ref(),
+            solutions.as_ref(),
+            hard_mode,
+            false,
+            strategy,
+        );
         let mut guess_count = 0;
 
         loop {
@@ -47,7 +54,13 @@ fn thread_func(
 
 /// Run the solver with each allowable solution, collecting a count of how many guesses were
 /// required to solve each one. Splits the work out into threads for speed.
-fn histogram(thread_count: usize, guessable_path: &Path, solution_path: &Path, hard_mode: bool) {
+fn histogram(
+    thread_count: usize,
+    guessable_path: &Path,
+    solution_path: &Path,
+    hard_mode: bool,
+    strategy: Strategy,
+) {
     let guessable_list = Arc::new(load_list_from_file(guessable_path).unwrap());
     let solution_list = Arc::new(load_list_from_file(solution_path).unwrap());
 
@@ -70,6 +83,7 @@ fn histogram(thread_count: usize, guessable_path: &Path, solution_path: &Path, h
                 this_guessable,
                 this_solutions,
                 hard_mode,
+                strategy,
                 start_index,
                 end_index,
             )
@@ -124,6 +138,7 @@ fn main() {
     let mut first_guess: Option<String> = None;
     let mut enter_guesses = false;
     let mut hard_mode = false;
+    let mut strategy = Strategy::GROUPSIZE;
 
     let mut guessable_path = "".to_string();
     let mut solutions_path = "".to_string();
@@ -167,6 +182,11 @@ fn main() {
                 "each. Ignores --self-score and --quiet."
             ),
         );
+        parser.refer(&mut strategy).add_option(
+            &["--strategy"],
+            Parse,
+            "Which solving strategy to use: groupcount or groupsize (default)",
+        );
         parser.refer(&mut thread_count).add_option(
             &["--thread-count"],
             Parse,
@@ -191,6 +211,7 @@ fn main() {
             guessable_path.as_ref(),
             solutions_path.as_ref(),
             hard_mode,
+            strategy,
         );
         return;
     }
@@ -205,7 +226,7 @@ fn main() {
         }
     }
 
-    let mut state = Solver::new(&guessable_list, &solution_list, hard_mode, !quiet);
+    let mut state = Solver::new(&guessable_list, &solution_list, hard_mode, !quiet, strategy);
 
     loop {
         let guess = first_guess.unwrap_or_else(|| {

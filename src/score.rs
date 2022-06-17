@@ -1,16 +1,17 @@
 use std::fmt::{Display, Write};
+use std::hash::Hash;
 use std::io::BufRead;
 use std::mem::MaybeUninit;
 use std::sync::Once;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum LetterScore {
     CORRECT,
     PRESENT,
     ABSENT,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DetailScore {
     inner: [LetterScore; 5],
 }
@@ -33,6 +34,12 @@ impl Display for DetailScore {
             })?;
         }
         Ok(())
+    }
+}
+
+impl Hash for DetailScore {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.inner.iter().for_each(|letter| letter.hash(state))
     }
 }
 

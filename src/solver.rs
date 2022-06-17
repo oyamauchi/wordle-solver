@@ -1,4 +1,22 @@
+use std::collections::HashSet;
+
 use crate::score::{all_possible_scores, compute_score, DetailScore};
+
+#[derive(Clone, Copy)]
+pub enum Strategy {
+    GROUPSIZE,
+    GROUPCOUNT,
+}
+
+impl argparse::FromCommandLine for Strategy {
+    fn from_argument(s: &str) -> Result<Self, String> {
+        match s {
+            "groupsize" => Ok(Self::GROUPSIZE),
+            "groupcount" => Ok(Self::GROUPCOUNT),
+            _ => Err("strategies are 'groupcount' and 'groupsize'".to_string()),
+        }
+    }
+}
 
 pub struct Solver<'a> {
     /// Possible solutions that haven't been eliminated yet.
@@ -18,6 +36,9 @@ pub struct Solver<'a> {
 
     /// Whether to print log messages.
     verbose: bool,
+
+    /// Which solving strategy to use.
+    strategy: Strategy,
 }
 
 impl<'a> Solver<'a> {
@@ -26,6 +47,7 @@ impl<'a> Solver<'a> {
         solution_list: &'a [String],
         hard_mode: bool,
         verbose: bool,
+        strategy: Strategy,
     ) -> Self {
         Solver {
             possibilities: Vec::from_iter(solution_list.iter().map(|s| s.as_str())),
@@ -34,6 +56,7 @@ impl<'a> Solver<'a> {
             history: Vec::new(),
             hard_mode,
             verbose,
+            strategy,
         }
     }
 
@@ -43,6 +66,64 @@ impl<'a> Solver<'a> {
             return self.possibilities[0];
         }
 
+        match self.strategy {
+            Strategy::GROUPCOUNT => self.next_guess_groupcount(),
+            Strategy::GROUPSIZE => self.next_guess_groupsize(),
+        }
+    }
+
+    fn next_guess_groupcount(&self) -> &'a str {
+        let mut max_groupcount = 0;
+        let mut max_groupcount_guesses: Vec<&str> = Vec::new();
+
+        // For each allowable guess, compute how many different scores it could get.
+        'next_guess: for guess in self.solution_list.iter().chain(self.guessable_list.iter()) {
+            if self.hard_mode {
+                for (prev_guess, score) in self.history.iter() {
+                    if compute_score(prev_guess, guess) != *score {
+                        continue 'next_guess;
+                    }
+                }
+            }
+
+            let mut possible_scores = HashSet::new();
+
+            for possibility in self.possibilities.iter() {
+                possible_scores.insert(compute_score(guess, possibility));
+            }
+
+            if possible_scores.len() > max_groupcount {
+                max_groupcount = possible_scores.len();
+                max_groupcount_guesses.clear();
+            }
+            if possible_scores.len() == max_groupcount {
+                max_groupcount_guesses.push(guess);
+            }
+        }
+
+        if self.verbose {
+            println!("Candidates: {:?}", max_groupcount_guesses);
+        }
+
+        // Return a guess that is a possible solution, if any.
+        for guess in max_groupcount_guesses.iter() {
+            if self.possibilities.contains(guess) {
+                return guess;
+            }
+        }
+
+        // This is OK -- we won't win with this guess, but it will maximize the new info we get.
+        if self.verbose {
+            println!("Guessing a word that is not a possible solution");
+        }
+
+        // It would be correct to use any word in max_min_guesses, but using the last one happens
+        // to allow the program to solve all words in 5 tries or fewer. It's not a considered
+        // strategy; it's really just a function of the ordering of the words in the lists.
+        return max_groupcount_guesses[0];
+    }
+
+    fn next_guess_groupsize(&self) -> &'a str {
         let mut max_min_eliminated = 0;
         let mut max_min_guesses: Vec<&str> = Vec::new();
 
