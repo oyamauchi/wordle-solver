@@ -43,7 +43,6 @@ fn main() {
     let mut quiet = false;
     let mut thread_count = 8;
     let mut predetermined_solution: Option<String> = None;
-    let mut first_guess: Option<String> = None;
     let mut enter_guesses = false;
     let mut hard_mode = false;
     let mut strategy = Strategy::GROUPSIZE;
@@ -61,11 +60,6 @@ fn main() {
                 "Only print guesses (and scores if --self-score is passed); ",
                 "do not print prompts or info."
             ),
-        );
-        parser.refer(&mut first_guess).add_option(
-            &["--first-guess"],
-            StoreOption,
-            "Use this as the first guess",
         );
         parser.refer(&mut enter_guesses).add_option(
             &["--enter-guesses"],
@@ -136,21 +130,20 @@ fn main() {
     let mut state = Solver::new(&guessable_list, &solution_list, hard_mode, !quiet, strategy);
 
     loop {
-        let guess = first_guess.unwrap_or_else(|| {
-            if enter_guesses {
-                read_guess_interactively(&mut input, &mut output, quiet)
-            } else {
-                String::from(state.next_guess())
+        let guess = if enter_guesses {
+            if !quiet {
+                println!("Recommended: {}", state.next_guess());
             }
-        });
-
-        if !enter_guesses {
+            read_guess_interactively(&mut input, &mut output, quiet)
+        } else {
+            let g = String::from(state.next_guess());
             if quiet {
-                println!("{}", guess);
+                println!("{}", g);
             } else {
-                println!("Guess: {}", guess);
+                println!("Guess: {}", g);
             }
-        }
+            g
+        };
 
         let score = match predetermined_solution {
             Some(ref solution) => {
@@ -173,6 +166,5 @@ fn main() {
         }
 
         state.respond_to_score(&guess, &score);
-        first_guess = None;
     }
 }
