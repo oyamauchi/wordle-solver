@@ -101,10 +101,6 @@ impl<'a> Solver<'a> {
             }
         }
 
-        if self.verbose {
-            println!("Candidates: {:?}", max_groupcount_guesses);
-        }
-
         // Return a guess that is a possible solution, if any.
         for guess in max_groupcount_guesses.iter() {
             if self.possibilities.contains(guess) {
