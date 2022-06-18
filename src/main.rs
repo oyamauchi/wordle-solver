@@ -14,6 +14,8 @@ use solver::{Solver, Strategy};
 fn read_guess_interactively(
     input: &mut dyn BufRead,
     output: &mut dyn std::io::Write,
+    guessable_list: &Vec<String>,
+    solution_list: &Vec<String>,
     quiet: bool,
 ) -> String {
     let mut buf = String::new();
@@ -28,10 +30,17 @@ fn read_guess_interactively(
         input.read_line(&mut buf).unwrap();
         buf.truncate(buf.len() - 1);
 
-        if buf.len() == 5 && buf.as_bytes().iter().all(|b| *b >= b'a' && *b <= b'z') {
-            return buf;
+        if buf.len() != 5 || !buf.as_bytes().iter().all(|b| *b >= b'a' && *b <= b'z') {
+            println!("Guess must be 5 lowercase letters");
+            continue;
         }
-        println!("Guess must be 5 lowercase letters");
+
+        if !(guessable_list.contains(&buf) || solution_list.contains(&buf)) {
+            println!("Not a valid guess");
+            continue;
+        }
+
+        return buf;
     }
 }
 
@@ -134,7 +143,13 @@ fn main() {
             if !quiet {
                 println!("Recommended: {}", state.next_guess());
             }
-            read_guess_interactively(&mut input, &mut output, quiet)
+            read_guess_interactively(
+                &mut input,
+                &mut output,
+                &guessable_list,
+                &solution_list,
+                quiet,
+            )
         } else {
             let g = String::from(state.next_guess());
             if quiet {
