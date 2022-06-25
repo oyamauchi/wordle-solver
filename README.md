@@ -122,3 +122,5 @@ makes a difference to the solver's correctness, so you may get spurious failures
 if you run `absurdle-solver` with the Wordle lists. Absurdle's word lists are
 not as trivial to extract from the page source as Wordle's, but still doable
 with a few lines of JavaScript.
+
+more lines
