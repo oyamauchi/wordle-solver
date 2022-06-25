@@ -21,6 +21,40 @@ impl DetailScore {
             .iter()
             .all(|letter| *letter == LetterScore::CORRECT)
     }
+
+    /// Returns an equivalent of a score used by Absurdle. It's called "entropyLost" in Absurdle,
+    /// and is supposed to be a measure of how much information the score holds. This is not the
+    /// exact formula that Absurdle uses (which involves exponentiating 10, which is inefficient),
+    /// but it is equivalent for comparison purposes. This is how Absurdle breaks ties when
+    /// deciding what score to return, if there are multiple scores that would leave possibility
+    /// sets of the same size.
+    ///
+    /// In principle, this is lexicographic comparison of a tuple consisting of:
+    /// - Count of CORRECT letters
+    /// - Count of PRESENT letters
+    /// - Count of ABSENT letters
+    /// - Each letter from left to right, with CORRECT > PRESENT > ABSENT
+    /// For efficiency, pack these into an int instead of using a real tuple.
+    #[allow(dead_code)]
+    pub fn absurdle_entropy_lost(&self) -> u32 {
+        let mut counts = [0_u32, 0, 0];
+        let mut result = 0_u32;
+
+        for i in 0..5 {
+            let letter_num = match self.inner[i] {
+                LetterScore::ABSENT => 0_u32,
+                LetterScore::PRESENT => 1_u32,
+                LetterScore::CORRECT => 2_u32,
+            };
+
+            // 2 bits for each letter score
+            result += letter_num << ((4 - i) * 2);
+            counts[letter_num as usize] += 1;
+        }
+
+        // 3 bits for each count (they can be up to 5)
+        result + (counts[2] << 16) + (counts[1] << 13) + (counts[0] << 10)
+    }
 }
 
 impl Display for DetailScore {

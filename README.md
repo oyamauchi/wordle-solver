@@ -108,3 +108,17 @@ that, and is restricted to guessing each possibility in sequence; `shave`
 happens to be the last one it tries. In fact, each word requiring 8 guesses has
 a corresponding 7-guess word different in one letter: match/batch,
 mower/cower/mover, shave/shale.
+
+## Absurdle
+
+There is also a solver for
+[Absurdle](https://qntm.org/files/absurdle/absurdle.html)'s challenge mode in
+`src/bin`. It can solve all possible target words, both in normal mode and hard
+mode. I have no idea whether it's optimal for all words.
+
+Note that Absurdle's word lists differ slightly from Wordle's (a few words have
+been removed from both the solution list and guessable list). This actually
+makes a difference to the solver's correctness, so you may get spurious failures
+if you run `absurdle-solver` with the Wordle lists. Absurdle's word lists are
+not as trivial to extract from the page source as Wordle's, but still doable
+with a few lines of JavaScript.
