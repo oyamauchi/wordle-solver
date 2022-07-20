@@ -78,10 +78,10 @@ The files' SHA-256 hashes are as follows. The words' order is unchanged from the
 order in the Wordle source, and there is a trailing newline.
 
 Solutions list =
-`ecc0269bce8250738f277c63103ed81a0d9904549a6d6da2c7cd6d32cca401f0`
+`67213a671a9109f638b004dbfad7a7d5d9008d2b2b16a1e62c3f637602816e39`
 
 Guessable list =
-`f012ef5ecdbeb94274186abcbbd5388d92bb86fe8ae0635fffcc5e9be4aa3d33`
+`9761fb0255ccded3ebb32a4b27fb8608cab1747508e9cfa1402d9a701c60cdda`
 
 ## Fun facts
 
