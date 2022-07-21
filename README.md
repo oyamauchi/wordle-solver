@@ -94,8 +94,8 @@ possible word, and compare which one took fewer guesses) clearly show that
 
 |        | `groupsize` wins | `groupcount` wins | Tie  |
 | ------ | ---------------- | ----------------- | ---- |
-| Normal | 439              | 712               | 1164 |
-| Hard   | 490              | 755               | 1070 |
+| Normal | 434              | 710               | 1165 |
+| Hard   | 486              | 754               | 1069 |
 
 `groupcount` always starts with `trace`, although for some reason the NYTimes
 bot, which apparently uses the same strategy, prefers the starting word `crane`.
@@ -108,10 +108,10 @@ mode, neither strategy can solve all words within 6 guesses:
 | N   | `groupsize` normal | `groupcount` normal | `groupsize` hard | `groupcount` hard |
 | --- | ------------------ | ------------------- | ---------------- | ----------------- |
 | 1   | 1                  | 1                   | 1                | 1                 |
-| 2   | 53                 | 75                  | 93               | 124               |
-| 3   | 997                | 1237                | 910              | 1084              |
-| 4   | 1168               | 926                 | 1029             | 910               |
-| 5   | 96                 | 75                  | 227              | 159               |
+| 2   | 53                 | 75                  | 93               | 123               |
+| 3   | 993                | 1237                | 908              | 1084              |
+| 4   | 1166               | 920                 | 1027             | 905               |
+| 5   | 96                 | 75                  | 225              | 159               |
 | 6   |                    | 1                   | 41               | 29                |
 | _7_ |                    |                     | _11_             | _7_               |
 | _8_ |                    |                     | _3_              | _1_               |
