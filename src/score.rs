@@ -1,8 +1,6 @@
 use std::fmt::{Display, Write};
 use std::hash::Hash;
 use std::io::BufRead;
-use std::mem::MaybeUninit;
-use std::sync::Once;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum LetterScore {
@@ -41,43 +39,6 @@ impl Hash for DetailScore {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.inner.iter().for_each(|letter| letter.hash(state))
     }
-}
-
-/// All possible scores for a five-letter guess.
-static mut POSSIBLE_SCORES: MaybeUninit<Vec<DetailScore>> = MaybeUninit::uninit();
-static ONCE: Once = Once::new();
-
-/// Generate all possible scores for a five-letter guess. This is actually more than all possible
-/// score, because e.g. it is not possible to have a score of CCCCP. But that doesn't matter for
-/// our purposes.
-pub fn all_possible_scores() -> &'static Vec<DetailScore> {
-    ONCE.call_once(|| {
-        let mut vec = Vec::new();
-
-        let letters = [
-            LetterScore::ABSENT,
-            LetterScore::PRESENT,
-            LetterScore::CORRECT,
-        ];
-
-        for a in 0..3 {
-            for b in 0..3 {
-                for c in 0..3 {
-                    for d in 0..3 {
-                        for e in 0..3 {
-                            let inner =
-                                [letters[a], letters[b], letters[c], letters[d], letters[e]];
-                            vec.push(DetailScore { inner });
-                        }
-                    }
-                }
-            }
-        }
-
-        unsafe { POSSIBLE_SCORES.write(vec) };
-    });
-
-    unsafe { POSSIBLE_SCORES.assume_init_ref() }
 }
 
 pub fn compute_score(guess: &str, solution: &str) -> DetailScore {
