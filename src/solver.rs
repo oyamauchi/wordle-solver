@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::score::{compute_score, DetailScore};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Strategy {
     GROUPSIZE,
     GROUPCOUNT,
@@ -66,7 +66,7 @@ impl<'a> Solver<'a> {
             return self.possibilities[0];
         }
 
-        let mut best_eval = i32::MIN;
+        let mut best_eval = (i32::MIN, i32::MIN);
         let mut best_guesses: Vec<&str> = Vec::new();
 
         'next_guess: for guess in self.solution_list.iter().chain(self.guessable_list.iter()) {
@@ -79,7 +79,7 @@ impl<'a> Solver<'a> {
                 }
             }
 
-            let eval = self.eval_guess(guess);
+            let eval = self.eval_guess(guess, &self.strategy);
             if eval > best_eval {
                 best_eval = eval;
                 best_guesses.clear();
@@ -89,25 +89,22 @@ impl<'a> Solver<'a> {
             }
         }
 
-        // Prefer to guess something that is a possible solution.
-        for guess in best_guesses.iter() {
-            if self.possibilities.contains(guess) {
-                return guess;
-            }
-        }
-
-        // This is OK -- we won't win with this guess, but it should maximize the new info we get,
-        // according to the chosen strategy's metric.
-        if self.verbose {
-            println!("Guessing a word that is not a possible solution");
-        }
-
-        // It would be correct to use any word in max_min_guesses; use the first one arbitrarily.
-        best_guesses[0]
+        // Of the best guesses, prefer one that is a possible solution given the scores we've
+        // gotten so far. If there isn't one, that's OK; we won't win on this turn but it should
+        // maximize the new info we get.
+        best_guesses
+            .iter()
+            .find(|guess| self.possibilities.contains(guess))
+            .unwrap_or_else(|| {
+                if self.verbose {
+                    println!("Guessing a word that is not a possible solution");
+                }
+                &best_guesses[0]
+            })
     }
 
     /// Score the given guess according to the strategy. Higher score is better.
-    fn eval_guess(&self, guess: &str) -> i32 {
+    fn eval_guess(&self, guess: &str, strategy: &Strategy) -> (i32, i32) {
         let mut groups = HashMap::new();
 
         // For each possible solution, compute what score this guess would get if that were the
@@ -125,12 +122,12 @@ impl<'a> Solver<'a> {
             }
         }
 
-        match self.strategy {
-            // Just the raw number of groups; more groups are better.
-            Strategy::GROUPCOUNT => groups.len() as i32,
-
-            // Find the maximum-sized group; smaller max-sized groups are better, so negate it.
-            Strategy::GROUPSIZE => -*groups.values().max().unwrap(),
+        let count_eval = groups.len() as i32;
+        let size_eval = -*groups.values().max().unwrap();
+        if *strategy == Strategy::GROUPCOUNT {
+            (count_eval, size_eval)
+        } else {
+            (size_eval, count_eval)
         }
     }
 
