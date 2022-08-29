@@ -14,15 +14,15 @@ use solver::{Solver, Strategy};
 fn read_guess_interactively(
     input: &mut dyn BufRead,
     output: &mut dyn std::io::Write,
-    guessable_list: &Vec<String>,
-    solution_list: &Vec<String>,
+    guessable_list: &[String],
+    solution_list: &[String],
     quiet: bool,
 ) -> String {
     let mut buf = String::new();
 
     loop {
         if !quiet {
-            output.write(b"Guess: ").unwrap();
+            output.write_all(b"Guess: ").unwrap();
             output.flush().unwrap();
         }
 
@@ -54,7 +54,7 @@ fn main() {
     let mut predetermined_solution: Option<String> = None;
     let mut enter_guesses = false;
     let mut hard_mode = false;
-    let mut strategy = Strategy::GROUPSIZE;
+    let mut strategy = Strategy::GroupSize;
 
     let mut guessable_path = "".to_string();
     let mut solutions_path = "".to_string();

@@ -4,15 +4,15 @@ use crate::score::{compute_score, DetailScore};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Strategy {
-    GROUPSIZE,
-    GROUPCOUNT,
+    GroupSize,
+    GroupCount,
 }
 
 impl argparse::FromCommandLine for Strategy {
     fn from_argument(s: &str) -> Result<Self, String> {
         match s {
-            "groupsize" => Ok(Self::GROUPSIZE),
-            "groupcount" => Ok(Self::GROUPCOUNT),
+            "groupsize" => Ok(Self::GroupSize),
+            "groupcount" => Ok(Self::GroupCount),
             _ => Err("strategies are 'groupcount' and 'groupsize'".to_string()),
         }
     }
@@ -124,7 +124,7 @@ impl<'a> Solver<'a> {
 
         let count_eval = groups.len() as i32;
         let size_eval = -*groups.values().max().unwrap();
-        if *strategy == Strategy::GROUPCOUNT {
+        if *strategy == Strategy::GroupCount {
             (count_eval, size_eval)
         } else {
             (size_eval, count_eval)
@@ -141,7 +141,7 @@ impl<'a> Solver<'a> {
         self.possibilities
             .retain(|possibility| compute_score(guess, possibility) == *score);
 
-        if self.possibilities.len() == 0 {
+        if self.possibilities.is_empty() {
             // This should not happen absent human error in playing the game.
             panic!("No possibilities left");
         }

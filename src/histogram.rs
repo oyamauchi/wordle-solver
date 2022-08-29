@@ -47,7 +47,7 @@ fn thread_func(
             solutions.as_ref(),
             hard_mode,
             false,
-            Strategy::GROUPSIZE,
+            Strategy::GroupSize,
         );
         let size_result = run_solver(groupsize, answer);
         groupsize_counts[size_result as usize] += 1;
@@ -57,7 +57,7 @@ fn thread_func(
             solutions.as_ref(),
             hard_mode,
             false,
-            Strategy::GROUPCOUNT,
+            Strategy::GroupCount,
         );
         let count_result = run_solver(groupcount, answer);
         groupcount_counts[count_result as usize] += 1;
@@ -126,8 +126,8 @@ pub fn histogram(
             groupcount_totals[i] += result.groupcount_counts[i];
             groupsize_totals[i] += result.groupsize_counts[i];
         }
-        for i in 0..3 {
-            count_size_tie[i] += result.count_size_tie[i];
+        for (i, count) in count_size_tie.iter_mut().enumerate() {
+            *count += result.count_size_tie[i];
         }
     }
 
