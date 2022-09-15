@@ -11,13 +11,13 @@ use loader::load_list_from_file;
 use score::{compute_score, read_score_interactively};
 use solver::{Solver, Strategy};
 
-fn read_guess_interactively(
+fn read_guess_interactively<'a>(
     input: &mut dyn BufRead,
     output: &mut dyn std::io::Write,
-    guessable_list: &[String],
-    solution_list: &[String],
+    guessable_list: &'a [String],
+    solution_list: &'a [String],
     quiet: bool,
-) -> String {
+) -> &'a str {
     let mut buf = String::new();
 
     loop {
@@ -35,12 +35,13 @@ fn read_guess_interactively(
             continue;
         }
 
-        if !(guessable_list.contains(&buf) || solution_list.contains(&buf)) {
-            println!("Not a valid guess");
-            continue;
+        for guess in guessable_list.iter().chain(solution_list.iter()) {
+            if *guess == buf {
+                return guess;
+            }
         }
 
-        return buf;
+        println!("Not a valid guess");
     }
 }
 
@@ -151,7 +152,7 @@ fn main() {
                 quiet,
             )
         } else {
-            let g = String::from(state.next_guess());
+            let g = state.next_guess();
             if quiet {
                 println!("{}", g);
             } else {
@@ -162,7 +163,7 @@ fn main() {
 
         let score = match predetermined_solution {
             Some(ref solution) => {
-                let s = compute_score(&guess, solution);
+                let s = compute_score(guess, solution);
                 if quiet {
                     println!("{}", s);
                 } else {
@@ -180,6 +181,6 @@ fn main() {
             break;
         }
 
-        state.respond_to_score(&guess, score);
+        state.respond_to_score(guess, score);
     }
 }

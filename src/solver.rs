@@ -27,7 +27,7 @@ pub struct Solver<'a> {
     solution_list: &'a [String],
 
     /// Guesses made so far, and the scores they got. Only used in hard mode.
-    history: Vec<(String, DetailScore)>,
+    history: Vec<(&'a str, DetailScore)>,
 
     /// Only allowed to guess words that match scores seen so far.
     hard_mode: bool,
@@ -126,9 +126,9 @@ impl<'a> Solver<'a> {
 
     /// Whittle down the possibilities set given the actual score for a guess. Note that this
     /// doesn't assume the guess is one that `next_guess` actually returned; it can be anything.
-    pub fn respond_to_score(&mut self, guess: &str, score: DetailScore) {
+    pub fn respond_to_score(&mut self, guess: &'a str, score: DetailScore) {
         if self.hard_mode {
-            self.history.push((String::from(guess), score));
+            self.history.push((guess, score));
         }
 
         self.possibilities
