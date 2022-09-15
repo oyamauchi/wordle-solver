@@ -180,6 +180,6 @@ fn main() {
             break;
         }
 
-        state.respond_to_score(&guess, &score);
+        state.respond_to_score(&guess, score);
     }
 }

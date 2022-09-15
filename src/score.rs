@@ -3,36 +3,50 @@ use std::hash::Hash;
 use std::io::BufRead;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum LetterScore {
-    Correct,
+#[repr(u8)]
+enum LetterScore {
+    Absent = 0,
     Present,
-    Absent,
+    Correct,
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct DetailScore {
-    inner: [LetterScore; 5],
-}
+const LETTERS: [char; 3] = ['a', 'p', 'c'];
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DetailScore(u8);
+
+pub const NUM_POSSIBLE_SCORES: u8 = 3u8.pow(5);
 
 impl DetailScore {
     pub fn is_win(&self) -> bool {
-        self.inner
-            .iter()
-            .all(|letter| *letter == LetterScore::Correct)
+        self.0 == NUM_POSSIBLE_SCORES - 1
+    }
+    pub fn as_num(&self) -> u8 {
+        self.0
     }
 }
 
 impl Display for DetailScore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for letter in self.inner.iter() {
-            f.write_char(match letter {
-                LetterScore::Absent => 'a',
-                LetterScore::Correct => 'c',
-                LetterScore::Present => 'p',
-            })?;
+        let mut num = self.0;
+        let mut divisor = 81;
+        for _ in 0..5 {
+            let quotient = num / divisor;
+            f.write_char(LETTERS[quotient as usize])?;
+            num -= quotient * divisor;
+            divisor /= 3;
         }
         Ok(())
     }
+}
+
+fn pack_score(score: &[LetterScore; 5]) -> DetailScore {
+    let mut num = 0;
+    for letter in score.iter() {
+        num *= 3;
+        num += *letter as u8;
+    }
+    DetailScore(num)
 }
 
 pub fn compute_score(guess: &str, solution: &str) -> DetailScore {
@@ -62,7 +76,7 @@ pub fn compute_score(guess: &str, solution: &str) -> DetailScore {
         }
     }
 
-    DetailScore { inner: result }
+    pack_score(&result)
 }
 
 /// Turn a 5-letter string of "a", "c", and "p" into a DetailScore.
@@ -82,7 +96,7 @@ fn parse_score_string(score_str: &str) -> Option<DetailScore> {
         }
     }
 
-    Some(DetailScore { inner: result })
+    Some(pack_score(&result))
 }
 
 /// Read a 5-letter a/c/p string from stdin via interactive prompts.

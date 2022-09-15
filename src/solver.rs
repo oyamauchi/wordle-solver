@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use crate::score::{compute_score, DetailScore};
+use crate::score::{compute_score, DetailScore, NUM_POSSIBLE_SCORES};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Strategy {
@@ -105,7 +103,7 @@ impl<'a> Solver<'a> {
 
     /// Score the given guess according to the strategy. Higher score is better.
     fn eval_guess(&self, guess: &str, strategy: &Strategy) -> (i32, i32) {
-        let mut groups = HashMap::new();
+        let mut groups = [0; NUM_POSSIBLE_SCORES as usize];
 
         // For each possible solution, compute what score this guess would get if that were the
         // actual solution. All strategies make use of this information.
@@ -113,17 +111,12 @@ impl<'a> Solver<'a> {
         // Count how many possible solutions would result in each possible score.
         for possible_sol in self.possibilities.iter() {
             let score = compute_score(guess, possible_sol);
-
-            match groups.get_mut(&score) {
-                Some(count) => *count += 1,
-                None => {
-                    groups.insert(score, 1);
-                }
-            }
+            groups[score.as_num() as usize] += 1;
         }
 
-        let count_eval = groups.len() as i32;
-        let size_eval = -*groups.values().max().unwrap();
+        let count_eval = groups.iter().filter(|g| **g != 0).count() as i32;
+        let size_eval = -*groups.iter().max().unwrap();
+
         if *strategy == Strategy::GroupCount {
             (count_eval, size_eval)
         } else {
@@ -133,13 +126,13 @@ impl<'a> Solver<'a> {
 
     /// Whittle down the possibilities set given the actual score for a guess. Note that this
     /// doesn't assume the guess is one that `next_guess` actually returned; it can be anything.
-    pub fn respond_to_score(&mut self, guess: &str, score: &DetailScore) {
+    pub fn respond_to_score(&mut self, guess: &str, score: DetailScore) {
         if self.hard_mode {
-            self.history.push((String::from(guess), score.clone()));
+            self.history.push((String::from(guess), score));
         }
 
         self.possibilities
-            .retain(|possibility| compute_score(guess, possibility) == *score);
+            .retain(|possibility| compute_score(guess, possibility) == score);
 
         if self.possibilities.is_empty() {
             // This should not happen absent human error in playing the game.

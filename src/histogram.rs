@@ -25,7 +25,7 @@ fn run_solver(mut solver: Solver, answer: &str) -> u8 {
             return guess_count;
         }
 
-        solver.respond_to_score(guess, &score);
+        solver.respond_to_score(guess, score);
     }
 }
 
