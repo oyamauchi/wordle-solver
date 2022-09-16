@@ -55,12 +55,12 @@ pub fn compute_score(guess: &str, solution: &str) -> DetailScore {
 
     // Count how many of each letter there is in the solution.
     let mut solution_counts = [0; 26];
-    for c in solution.chars() {
+    for c in solution.bytes() {
         solution_counts[c as usize - a] += 1;
     }
 
     // Identify correct letters.
-    for (i, (c_guess, c_sol)) in guess.chars().zip(solution.chars()).enumerate() {
+    for (i, (c_guess, c_sol)) in guess.bytes().zip(solution.bytes()).enumerate() {
         if c_guess == c_sol {
             // Subtract this letter from solution_counts so that other copies of the same letter
             // elsewhere in the guess don't use this letter in the solution to count a PRESENT.
@@ -69,7 +69,7 @@ pub fn compute_score(guess: &str, solution: &str) -> DetailScore {
         }
     }
 
-    for (i, c_guess) in guess.chars().enumerate() {
+    for (i, c_guess) in guess.bytes().enumerate() {
         if result[i] != LetterScore::Correct && solution_counts[c_guess as usize - a] > 0 {
             solution_counts[c_guess as usize - a] -= 1;
             result[i] = LetterScore::Present;
