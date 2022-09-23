@@ -116,12 +116,13 @@ pub fn histogram(
         start_index += count_per_thread;
     }
 
+    std::mem::drop(sender);
+
     let mut groupcount_totals = [0; 10];
     let mut groupsize_totals = [0; 10];
     let mut count_size_tie = [0; 3];
 
-    for _ in 0..thread_count {
-        let result = receiver.recv().unwrap();
+    for result in receiver.iter() {
         for i in 0..10 {
             groupcount_totals[i] += result.groupcount_counts[i];
             groupsize_totals[i] += result.groupsize_counts[i];
