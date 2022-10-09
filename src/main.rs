@@ -30,7 +30,7 @@ fn read_guess_interactively<'a>(
         input.read_line(&mut buf).unwrap();
         buf.truncate(buf.len() - 1);
 
-        if buf.len() != 5 || !buf.as_bytes().iter().all(|b| *b >= b'a' && *b <= b'z') {
+        if buf.len() != 5 || !buf.as_bytes().iter().all(u8::is_ascii_lowercase) {
             println!("Guess must be 5 lowercase letters");
             continue;
         }
