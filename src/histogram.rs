@@ -13,19 +13,21 @@ struct ThreadResult {
     count_size_tie: [usize; 3],
 }
 
-fn run_solver(mut solver: Solver, answer: &str) -> u8 {
-    let mut guess_count = 0;
+fn run_solver<'a>(mut solver: Solver<'a>, first_guess: &'a str, answer: &str) -> u8 {
+    let mut score = compute_score(first_guess, answer);
+    solver.respond_to_score(first_guess, score);
+
+    let mut guess_count = 1;
 
     loop {
-        let guess = solver.next_guess();
-        let score = compute_score(guess, answer);
-        guess_count += 1;
-
         if score.is_win() {
             return guess_count;
         }
 
+        let guess = solver.next_guess();
+        score = compute_score(guess, answer);
         solver.respond_to_score(guess, score);
+        guess_count += 1;
     }
 }
 
@@ -41,25 +43,21 @@ fn thread_func(
     let mut groupcount_counts = [0; 10];
     let mut count_size_tie = [0; 3];
 
+    let guessable = guessable.as_ref();
+    let solutions = solutions.as_ref();
+
+    let size_first_guess =
+        Solver::new(guessable, solutions, false, false, Strategy::GroupSize).next_guess();
+    let count_first_guess =
+        Solver::new(guessable, solutions, false, false, Strategy::GroupCount).next_guess();
+
     for answer in solutions[start_index..end_index].iter() {
-        let groupsize = Solver::new(
-            guessable.as_ref(),
-            solutions.as_ref(),
-            hard_mode,
-            false,
-            Strategy::GroupSize,
-        );
-        let size_result = run_solver(groupsize, answer);
+        let groupsize = Solver::new(guessable, solutions, hard_mode, false, Strategy::GroupSize);
+        let size_result = run_solver(groupsize, size_first_guess, answer);
         groupsize_counts[size_result as usize] += 1;
 
-        let groupcount = Solver::new(
-            guessable.as_ref(),
-            solutions.as_ref(),
-            hard_mode,
-            false,
-            Strategy::GroupCount,
-        );
-        let count_result = run_solver(groupcount, answer);
+        let groupcount = Solver::new(guessable, solutions, hard_mode, false, Strategy::GroupCount);
+        let count_result = run_solver(groupcount, count_first_guess, answer);
         groupcount_counts[count_result as usize] += 1;
 
         println!("{} {} {}", count_result, size_result, answer);
