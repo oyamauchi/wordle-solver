@@ -28,17 +28,13 @@ Example with the solution `cargo`. The characters after each `Score:` prompt are
 typed in interactively.
 
 ```
-Guess: arise
-Score: ppaaa
-62 possibilities left
+Guess: raise
+Score: pcaaa
+26 possibilities left
 Guessing a word that is not a possible solution
-Guess: morra
-Score: apcap
-4 possibilities left
-Guessing a word that is not a possible solution
-Guess: zinco
-Score: aaapc
-1 possibilities left
+Guess: compt
+Score: cpaaa
+Possibilities left: cargo, carol
 Guess: cargo
 Score: ccccc
 Win!
@@ -94,62 +90,65 @@ possible word, and compare which one took fewer guesses) clearly show that
 
 |        | `groupsize` wins | `groupcount` wins | Tie  |
 | ------ | ---------------- | ----------------- | ---- |
-| Normal | 434              | 710               | 1165 |
-| Hard   | 486              | 754               | 1069 |
+| Normal | 461              | 643               | 1205 |
+| Hard   | 530              | 714               | 1065 |
 
 `groupcount` always starts with `trace`, although for some reason the NYTimes
 bot, which apparently uses the same strategy, prefers the starting word `crane`.
-`groupsize` could start with either `arise` or `raise`.
+`groupsize` always starts with `raise`. `arise` actually scores the same as
+`raise` on the `groupsize` metric, but `raise` does better on the `groupcount`
+metric, which breaks the tie.
 
 In normal mode, `groupsize` can solve all words in 5 guesses or fewer, and
-`groupcount` can solve all but one word (`boxer`) in 5 guesses or fewer. In hard
-mode, neither strategy can solve all words within 6 guesses:
+`groupcount` can solve all but two words (`boxer`, `roger`) in 5 guesses or
+fewer. In hard mode, neither strategy can solve all words within 6 guesses:
 
 | N   | `groupsize` normal | `groupcount` normal | `groupsize` hard | `groupcount` hard |
 | --- | ------------------ | ------------------- | ---------------- | ----------------- |
 | 1   | 1                  | 1                   | 1                | 1                 |
-| 2   | 53                 | 75                  | 93               | 123               |
-| 3   | 993                | 1237                | 908              | 1084              |
-| 4   | 1166               | 920                 | 1027             | 905               |
-| 5   | 96                 | 75                  | 225              | 159               |
-| 6   |                    | 1                   | 41               | 29                |
-| _7_ |                    |                     | _11_             | _7_               |
-| _8_ |                    |                     | _3_              | _1_               |
+| 2   | 59                 | 74                  | 102              | 114               |
+| 3   | 1060               | 1232                | 943              | 1090              |
+| 4   | 1129               | 935                 | 999              | 906               |
+| 5   | 60                 | 65                  | 207              | 164               |
+| 6   |                    | 2                   | 43               | 25                |
+| _7_ |                    |                     | _13_             | _8_               |
+| _8_ |                    |                     | _1_              | _1_               |
 
 These are the words that can't be solved within 6 guesses in hard mode:
 
 - `groupsize`
   - baste
-  - batch
   - brown
-  - cower
+  - corer
+  - daunt
   - graze
   - hound
+  - match
   - mover
-  - shale
+  - mower
+  - shave
   - snore
   - water
   - willy
-  - match (8 guesses)
-  - mower (8 guesses)
-  - shave (8 guesses)
+  - vaunt (8 guesses)
 - `groupcount`
   - batch
   - boxer
+  - fight
+  - foyer
   - golly
-  - goner
   - joker
   - vaunt
   - willy
   - match (8 guesses)
 
 The long tail of hard-to-solve words in hard mode is composed of words that
-differ from many other words by only one letter. E.g. in solving `shave`, the
-solver takes two guesses to narrow the possibilities to `shade`, `shake`,
-`shale`, `shame`, `shape`, and `shave`. In normal mode, it would then guess
-`vaped`, and thus be able to solve `shade`, `shape` or `shave` on the next try,
-and `shale`, `shake`, or `shame` in two more. But in hard mode, it can't do
-that, and is restricted to guessing each possibility in sequence; `shave`
-happens to be the last one it tries. In fact, each word requiring 8 guesses has
-a corresponding 7-guess word different in one letter: match/batch,
-mower/cower/mover, shave/shale.
+differ from many other words by only one letter. E.g. in solving `match`, the
+`groupcount` solver takes a single guess to narrow the possibilities to
+`hatch`, `watch`, `catch`, `latch`, `patch`, `batch`, and `match`. In normal
+mode, it would then guess `blimp`, and thus be able to solve `batch`, `latch`,
+`match` or `patch` on the next try, and `catch`, `hatch` or `watch` in two
+more. But in hard mode, it can't do that, and is restricted to guessing each
+possibility in sequence; `match` happens to be the last one it tries. In fact,
+each word requiring 8 guesses has a corresponding 7-guess word different in one
+letter: vaunt/daunt, match/batch.
