@@ -155,15 +155,12 @@ fn parse_score_string(score_str: &str) -> Option<DetailScore> {
 pub fn read_score_interactively(
     input: &mut dyn BufRead,
     output: &mut dyn std::io::Write,
-    quiet: bool,
 ) -> DetailScore {
     let mut buf = String::new();
 
     loop {
-        if !quiet {
-            output.write_all(b"Score: ").unwrap();
-            output.flush().unwrap();
-        }
+        output.write_all(b"Score: ").unwrap();
+        output.flush().unwrap();
 
         buf.clear();
         input.read_line(&mut buf).unwrap();

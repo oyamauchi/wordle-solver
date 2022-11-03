@@ -42,11 +42,6 @@ Win!
 
 The solver supports hard mode; simply pass `--hard-mode`.
 
-You can have the solver stop printing prompts and remaining possibilities with
-the `--quiet` flag; this makes it easier to run the solver from a script. You
-just send guesses and/or scores over stdin, and get back guesses and/or scores
-over stdout.
-
 Other ways to use the solver:
 
 - If you have a solution word in mind, you can pass it to the solver using the

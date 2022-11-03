@@ -16,15 +16,12 @@ fn read_guess_interactively<'a>(
     output: &mut dyn std::io::Write,
     guessable_list: &'a [String],
     solution_list: &'a [String],
-    quiet: bool,
 ) -> &'a str {
     let mut buf = String::new();
 
     loop {
-        if !quiet {
-            output.write_all(b"Guess: ").unwrap();
-            output.flush().unwrap();
-        }
+        output.write_all(b"Guess: ").unwrap();
+        output.flush().unwrap();
 
         buf.clear();
         input.read_line(&mut buf).unwrap();
@@ -50,7 +47,6 @@ fn main() {
     let mut output = stdout();
 
     let mut do_histogram = false;
-    let mut quiet = false;
     let mut thread_count = 8;
     let mut predetermined_solution: Option<String> = None;
     let mut enter_guesses = false;
@@ -63,14 +59,6 @@ fn main() {
     {
         let mut parser = ArgumentParser::new();
         parser.set_description("Solve wordle");
-        parser.refer(&mut quiet).add_option(
-            &["-q", "--quiet"],
-            StoreTrue,
-            concat!(
-                "Only print guesses (and scores if --self-score is passed); ",
-                "do not print prompts or info."
-            ),
-        );
         parser.refer(&mut enter_guesses).add_option(
             &["--enter-guesses"],
             StoreTrue,
@@ -91,7 +79,7 @@ fn main() {
             StoreTrue,
             concat!(
                 "Run both solver strategies on every possible solution; report number of guesses ",
-                "required for each. Ignores --self-score, --strategy, and --quiet."
+                "required for each. Ignores --self-score and --strategy."
             ),
         );
         parser.refer(&mut strategy).add_option(
@@ -137,47 +125,29 @@ fn main() {
         }
     }
 
-    let mut state = Solver::new(&guessable_list, &solution_list, hard_mode, !quiet, strategy);
+    let mut state = Solver::new(&guessable_list, &solution_list, hard_mode, true, strategy);
 
     loop {
         let guess = if enter_guesses {
-            if !quiet {
-                println!("Recommended: {}", state.next_guess());
-            }
-            read_guess_interactively(
-                &mut input,
-                &mut output,
-                &guessable_list,
-                &solution_list,
-                quiet,
-            )
+            println!("Recommended: {}", state.next_guess());
+            read_guess_interactively(&mut input, &mut output, &guessable_list, &solution_list)
         } else {
             let g = state.next_guess();
-            if quiet {
-                println!("{}", g);
-            } else {
-                println!("Guess: {}", g);
-            }
+            println!("Guess: {}", g);
             g
         };
 
         let score = match predetermined_solution {
             Some(ref solution) => {
                 let s = compute_score(guess, solution);
-                if quiet {
-                    println!("{}", s);
-                } else {
-                    println!("Score: {}", s);
-                }
+                println!("Score: {}", s);
                 s
             }
-            None => read_score_interactively(&mut input, &mut output, quiet),
+            None => read_score_interactively(&mut input, &mut output),
         };
 
         if score.is_win() {
-            if !quiet {
-                println!("Win!");
-            }
+            println!("Win!");
             break;
         }
 
