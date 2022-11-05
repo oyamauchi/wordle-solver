@@ -59,6 +59,11 @@ impl<'a> Solver<'a> {
         }
     }
 
+    #[allow(dead_code)]
+    pub fn get_possibilities(&self) -> &[&'a str] {
+        &self.possibilities
+    }
+
     /// Return the next word to guess.
     pub fn next_guess(&self) -> &'a str {
         if self.possibilities.len() == 1 {
