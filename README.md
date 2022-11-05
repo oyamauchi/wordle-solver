@@ -148,6 +148,12 @@ possibility in sequence; `match` happens to be the last one it tries. In fact,
 each word requiring 8 guesses has a corresponding 7-guess word different in one
 letter: vaunt/daunt, match/batch.
 
+## Multisolver
+
+There is also a solver that solves multiple boards at once in `src/bin`. It can solve an arbitrary number of boards. It's meant to be used with things like [Quordle](https://quordle.com), [Octordle](https://octordle.com), [Duotrigordle](https://duotrigordle.com), whatever.
+
+I don't know whether it's optimal in any sense, or whether it can solve all possible sets of starting boards, but anecdotally, I've tried it on a bunch of games of the above multi-Wordles, and it's solved all of them.
+
 ## Absurdle
 
 There is also a solver for
