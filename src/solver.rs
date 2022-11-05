@@ -1,4 +1,5 @@
-use crate::score::{compute_score, DetailScore, NUM_POSSIBLE_SCORES};
+use crate::eval::eval_guess;
+use crate::score::{compute_score, DetailScore};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Strategy {
@@ -77,7 +78,13 @@ impl<'a> Solver<'a> {
                 }
             }
 
-            let eval = self.eval_guess(guess, &self.strategy);
+            let eval = eval_guess(guess, &self.possibilities);
+            let eval = if self.strategy == Strategy::GroupCount {
+                (eval.count, eval.size)
+            } else {
+                (eval.size, eval.count)
+            };
+
             if eval > best_eval {
                 best_eval = eval;
                 best_guesses.clear();
@@ -99,29 +106,6 @@ impl<'a> Solver<'a> {
                 }
                 &best_guesses[0]
             })
-    }
-
-    /// Score the given guess according to the strategy. Higher score is better.
-    fn eval_guess(&self, guess: &str, strategy: &Strategy) -> (i32, i32) {
-        let mut groups = [0; NUM_POSSIBLE_SCORES as usize];
-
-        // For each possible solution, compute what score this guess would get if that were the
-        // actual solution. All strategies make use of this information.
-        //
-        // Count how many possible solutions would result in each possible score.
-        for possible_sol in self.possibilities.iter() {
-            let score = compute_score(guess, possible_sol);
-            groups[score.as_num() as usize] += 1;
-        }
-
-        let count_eval = groups.iter().filter(|g| **g != 0).count() as i32;
-        let size_eval = -*groups.iter().max().unwrap();
-
-        if *strategy == Strategy::GroupCount {
-            (count_eval, size_eval)
-        } else {
-            (size_eval, count_eval)
-        }
     }
 
     /// Whittle down the possibilities set given the actual score for a guess. Note that this

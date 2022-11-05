@@ -2,6 +2,7 @@ use std::io::{stdin, stdout, BufRead};
 
 use argparse::{ArgumentParser, Parse, Store, StoreOption, StoreTrue};
 
+mod eval;
 mod histogram;
 mod loader;
 mod score;
