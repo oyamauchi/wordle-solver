@@ -1,10 +1,11 @@
 /// Solves multiple boards at once; e.g. https://quordle.com , https://duotrigordle.com
 use std::io::{stdin, stdout};
 
-use argparse::{ArgumentParser, Parse, Store};
+use argparse::{ArgumentParser, Parse, Store, StoreTrue};
 
 use wordle_solver::eval::{eval_guess, reduce_eval};
 use wordle_solver::loader::load_list_from_file;
+use wordle_solver::read_guess_interactively;
 use wordle_solver::score::{read_score_interactively, DetailScore};
 use wordle_solver::solver::{Solver, Strategy};
 
@@ -110,6 +111,7 @@ fn main() {
     let mut output = stdout();
 
     let mut count = 4;
+    let mut enter_guesses = false;
     let mut strategy = Strategy::GroupSize;
     let mut guessable_path = "".to_string();
     let mut solutions_path = "".to_string();
@@ -122,6 +124,11 @@ fn main() {
             &["--strategy"],
             Parse,
             "Which solving strategy to use: groupcount or groupsize (default)",
+        );
+        parser.refer(&mut enter_guesses).add_option(
+            &["--enter-guesses"],
+            StoreTrue,
+            "Manually enter guesses instead of automatically using generated ones",
         );
 
         parser.refer(&mut guessable_path).required().add_argument(
@@ -148,11 +155,17 @@ fn main() {
     let mut solver = MultiSolver::new(count, &guessable_list, &solution_list, strategy);
 
     loop {
-        let guess = solver.next_guess();
-        solver.next_round();
-
         println!("==============================");
-        println!("Guess: {}", guess);
+
+        let guess = if enter_guesses {
+            println!("Recommended: {}", solver.next_guess());
+            read_guess_interactively(&mut input, &mut output, &guessable_list, &solution_list)
+        } else {
+            let g = solver.next_guess();
+            println!("Guess: {}", g);
+            g
+        };
+        solver.next_round();
 
         while let Some(index) = solver.index_needing_response() {
             println!("Need score for index {}", index);
