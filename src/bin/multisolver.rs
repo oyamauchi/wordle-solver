@@ -62,7 +62,7 @@ impl<'a> MultiSolver<'a> {
         }
 
         let mut best_eval = (i32::MIN, i32::MIN);
-        let mut best_guesses = Vec::new();
+        let mut best_guesses: Vec<&str> = Vec::new();
 
         for guess in self.solution_list.iter().chain(self.guessable_list.iter()) {
             // Don't get evals from solvers that are already done.
@@ -89,7 +89,18 @@ impl<'a> MultiSolver<'a> {
             }
         }
 
-        best_guesses[0]
+        best_guesses
+            .iter()
+            .max_by_key(|guess| {
+                self.solvers
+                    .iter()
+                    .enumerate()
+                    .filter(|(idx, solver)| {
+                        !self.done[*idx] && solver.get_possibilities().contains(guess)
+                    })
+                    .count()
+            })
+            .unwrap()
     }
 
     pub fn respond_to_score(&mut self, index: usize, guess: &'a str, score: DetailScore) {
