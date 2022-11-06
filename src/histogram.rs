@@ -3,9 +3,9 @@ use std::path::Path;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
 
-use crate::loader::load_list_from_file;
-use crate::score::compute_score;
-use crate::solver::{Solver, Strategy};
+use wordle_solver::loader::load_list_from_file;
+use wordle_solver::score::compute_score;
+use wordle_solver::solver::{Solver, Strategy};
 
 struct ThreadResult {
     groupsize_counts: [usize; 10],
