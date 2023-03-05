@@ -25,7 +25,7 @@ impl<'a> MultiSolver<'a> {
         guessable_list: &'a [String],
         solution_list: &'a [String],
         strategy: Strategy,
-    ) -> MultiSolver {
+    ) -> MultiSolver<'a> {
         let mut solvers = Vec::new();
         for _ in 0..count {
             solvers.push(Solver::new(
